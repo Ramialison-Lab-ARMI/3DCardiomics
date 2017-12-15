@@ -11,10 +11,15 @@ Assets/Resources/fernP4.txt
 The format of this file is tab-seperated beginning with the item name, and its intensity in the (18) locations. A sample file is provided with a few randomised values to demonstrate the functionality pending final publication of the results.
 
 ### Dependencies
-- Unity (we are using X.X.X)
+- Unity (we are using 5.5.0f3)
 - Any modern web browser which is WebGL capable
 
-
+### Instructions
+Simply run unity and open the root folder of the project. If the heart scene is not visible, open it in unity by browsing to:
+```
+Assets/3DCardiomics_main.unity
+```
+and double clicking the file
 
 
 
