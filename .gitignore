@@ -1,0 +1,8 @@
+3dc_webgl_5.5/
+Temp/
+**/.DS_Store
+3D-64.app
+Library/
+Obj/
+Assets/WebGLTemplates/**
+Assets/Resources/fernP4_real.txt
