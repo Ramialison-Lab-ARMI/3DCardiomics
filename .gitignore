@@ -6,3 +6,7 @@ Library/
 Obj/
 Assets/WebGLTemplates/**
 Assets/Resources/fernP4_real.txt
+Assets/Resources/fernP4_real.txt.meta
+Assets/WebGLTemplates.meta
+Assets/Editor.meta
+
