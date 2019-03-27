@@ -2,7 +2,7 @@
 using UnityEngine.UI;
 
  // Needed to access onscreen elements
-using UnityEngine.Networking;
+using UnityEngine.Networking; 
 using System.Collections.Generic;
 using System.Globalization;
 using System;
@@ -62,7 +62,7 @@ public class Compare : MonoBehaviour
 
     // For the button ** COMMENT FOR IPHONE **
     [DllImport("__Internal")]
-    private static extern void openWindow(string url);
+    private static extern void JsOpenWindow(string url);
 
     public static string[] hp = new string[18] { "A_1", "A_2", "A_3", "A_4", "B_1", "B_2", "B_3", "B_4", "C_1", "C_2", "C_3", "C_4", "D_1", "D_2", "D_3", "E_1", "E_2", "E_3" };
 
@@ -75,9 +75,9 @@ public class Compare : MonoBehaviour
     // Links the CSV button to the browser
     public void OpenLinkJSPlugin()
     {
-        //#if !UNITY_EDITOR
-        openWindow(csvUrl); //** COMMENT FOR IPHONE **
-        //#endif
+        #if UNITY_WEBGL && !UNITY_EDITOR
+        JsOpenWindow(csvUrl);
+        #endif
     }
 
     // Processes the clicking for contrasts

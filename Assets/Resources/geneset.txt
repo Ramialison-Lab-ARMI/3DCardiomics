@@ -1,0 +1,4 @@
+FERNP4_PATHWAY
+> A tiny fake set of genes
+Myl7
+Myl2

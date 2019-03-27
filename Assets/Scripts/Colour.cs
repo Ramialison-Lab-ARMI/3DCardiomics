@@ -5,6 +5,8 @@ using UnityEngine.UI;
 using System.Collections.Generic;
 using System.Collections;
 using System.Globalization;
+using System.Runtime.InteropServices;
+using System.Linq;
 
 /*****
  * 
@@ -14,6 +16,8 @@ using System.Globalization;
 
 public class Colour : MonoBehaviour
 {
+    [DllImport("__Internal")]
+    private static extern void JsAlert(string msg);
 
     public struct DataStringFloatArray // To store geneIdName
     {
@@ -50,7 +54,7 @@ public class Colour : MonoBehaviour
     public static string[] hp = new string[18] { "A_1", "A_2", "A_3", "A_4", "B_1", "B_2", "B_3", "B_4", "C_1", "C_2", "C_3", "C_4", "D_1", "D_2", "D_3", "E_1", "E_2", "E_3" };
     public static int valuesCount = 0;
 
-    private static float max;
+    private static float maxValue;
     private static bool norm;
     private static string currentGene = "";
     //private static string baseGene = "";
@@ -95,13 +99,29 @@ public class Colour : MonoBehaviour
         {
             normalise();
         }
+
+        SetGeneSetLabels("", "");
+    }
+
+    public void ResetAll() {
+        Reset();
+        var scripts = GameObject.Find("ScriptHolder");
+        var compare = GameObject.Find("Compare").GetComponentInChildren<Compare>();
+        var dpanel = GameObject.Find("Dropdown/dList/dContent");
+         
+        scripts.GetComponent<Explode>().Reset();
+
+        GameObject.Find("MainCamera").GetComponent<CameraRotation>().Reset();
+        GameObject.Find("MainCamera").GetComponent<Selection>().Reset();
+        if (compare) compare.reset();
+        if (dpanel) dpanel.GetComponentInChildren<dPanel>().reset();
     }
 
     // Parse the expression value database in to memory as an array of strings and floats
     public void LoadDatasetFORWEBPLAYER()
     {
 
-        TextAsset textAsset = Resources.Load("fernP4") as TextAsset; //string input =  result.text;
+        TextAsset textAsset = Resources.Load("fake_mouse_expression_data") as TextAsset; //string input =  result.text;
         string[] wArray = textAsset.text.Split("\n"[0]);
         Resources.UnloadAsset(textAsset);
 
@@ -110,7 +130,7 @@ public class Colour : MonoBehaviour
         string line;
         int i = wArray.Length;
 
-        max = 0;
+        maxValue = 0;
         norm = false;
 
         float current = 0;
@@ -129,9 +149,9 @@ public class Colour : MonoBehaviour
                 current = float.Parse(cols[j], CultureInfo.InvariantCulture.NumberFormat);
                 floats[j - 1] = current; // Create a temporary array of floats and add expression values
 
-                if (current > max)
+                if (current > maxValue)
                 {
-                    max = current;
+                    maxValue = current;
                 }
             }
             values.Add(new DataStringFloatArray(cols[0].ToLower(), floats)); // Add the gene expression values to values array of floats
@@ -144,34 +164,35 @@ public class Colour : MonoBehaviour
         //values.Sort((s1, s2) => s1.StringData.CompareTo(s2.StringData));
     }
 
+    public int FindIndexOfGene(string geneName) {
+        // Search the array for the gene name and return its index (location), or -1 if not found.
+        for (int i = 0; i < valuesCount; i++)
+        {
+            if (geneName.ToLower() == values[i].StringData.ToLower()) return i;
+        }
+        return -1;
+    }
+
     // Find the expression values corresponding with the entered gene, then start the colouring and similarity calculating processes
     public void ColourFromText(string geneName, bool panel = false)
     { 
 
         currentGene = geneName;
-        // Search the array for the gene name and get its index (location)
-        int found = -1;
-        for (int i = 0; i < valuesCount; i++)
-        {
-            if (geneName == values[i].StringData)
-            {
-                found = i;
-                break;
-            }
-        }
+        int geneIndex = FindIndexOfGene(geneName);
 
         // If the gene name was found, load that dataset into the pieces
-        if (found > -1)
+        if (geneIndex > -1)
         {
 
             if (panel)
             {
-                computeDistancesP(found);
+                computeDistancesP(geneIndex);
                 //baseGene = currentGene;
             }
 
             // Update current gene info
             gText.text = "Current gene: " + SentenceCase(geneName);
+            SetGeneSetLabels("", "");
 
             float lMax = -1;
             float lMin = 100;
@@ -179,19 +200,19 @@ public class Colour : MonoBehaviour
             { // Find the local min and max if in normalised mode
                 for (int i = 0; i < 18; i++)
                 {
-                    if (values[found].FloatDatas[i] > lMax)
+                    if (values[geneIndex].FloatDatas[i] > lMax)
                     {
-                        lMax = values[found].FloatDatas[i];
+                        lMax = values[geneIndex].FloatDatas[i];
                     }
-                    if (values[found].FloatDatas[i] < lMin)
+                    if (values[geneIndex].FloatDatas[i] < lMin)
                     {
-                        lMin = values[found].FloatDatas[i];
+                        lMin = values[geneIndex].FloatDatas[i];
                     }
                 }
             }
             for (int i = 0; i < 18; i++)
             {
-                colourHeartPiece(hp[i], values[found].FloatDatas[i], lMax, lMin);
+                colourHeartPiece(hp[i], values[geneIndex].FloatDatas[i], lMax, lMin);
             }
 
         }
@@ -203,6 +224,82 @@ public class Colour : MonoBehaviour
             //Debug.Log ("Gene with name " + geneName + " not found.");
             content.GetComponent<PanelScript>().sleep();
         }
+    }
+
+    public void ColourByGeneSet(GeneSet geneset) {
+        ResetAll();
+
+        var averageValues = new float[18];
+
+        foreach (string geneName in geneset.Genes)
+        {
+            var geneIndex = FindIndexOfGene(geneName);
+
+            #if UNITY_EDITOR
+            Debug.Log("geneName, geneIndex: " + geneName + ", " + geneIndex);
+            #endif
+
+            if (geneIndex == -1)
+            {
+                Debug.LogError(geneName + " not found.");
+                #if UNITY_WEBGL
+                JsAlert(geneName + " is not a valid gene name.");
+                #endif
+                return;
+            }
+
+            #if UNITY_EDITOR
+            for (int i = 0; i < 18; i++)
+            {
+                Debug.Log("Gene: " + geneName + ", Piece " + i.ToString() + ", Value: " +  values[geneIndex].FloatDatas[i].ToString());
+            }
+            #endif
+
+            // sum
+            for (int i = 0; i < 18; i++)
+            {
+                averageValues[i] += values[geneIndex].FloatDatas[i];
+            }
+        }
+
+        // divide by number of genes in the set to obtain the average
+        for (int i = 0; i < 18; i++)
+        {
+            averageValues[i] /= geneset.Genes.Count;
+        }
+
+        #if UNITY_EDITOR
+        for (int i = 0; i < 18; i++)
+        {
+            Debug.Log("Piece " + i.ToString() + " average: " + averageValues[i].ToString());
+        }
+        Debug.Log("Min: " + averageValues.Min().ToString());
+        Debug.Log("Max: " + averageValues.Max().ToString());
+        #endif
+
+        // apply average colours to model
+        maxValue = averageValues.Max();
+        // norm = true;
+        for (int i = 0; i < 18; i++)
+        {
+            colourHeartPiece(hp[i], averageValues[i], maxValue, averageValues.Min());
+        }
+
+        SetGeneSetLabels(geneset.Name, geneset.Description);
+    }
+
+    public void SetGeneSetLabels(string name, string description) {
+        GameObject.Find("GeneSetName").GetComponent<Text>().text = name;
+        var descLabel = GameObject.Find("GeneSetDescription").GetComponent<Text>();
+        descLabel.text = description;
+
+        /*
+        descLabel.alignment = TextAnchor.MiddleRight;
+        if (description.Length > 120)
+        {
+            descLabel.alignment = TextAnchor.MiddleLeft;
+        }
+        */
     }
 
     public static string SentenceCase(string input)
@@ -315,13 +412,16 @@ public class Colour : MonoBehaviour
         }
         else
         {
-            t = exp / (max);
+            t = exp / (maxValue);
         }
 
         // Create a gradient
         Gradient g = new Gradient();
         GradientColorKey[] gck;
 
+        // TODO: Idea - sample colors across the width (or height) of a given texture.
+        //       This way any gradient can be provided and the Low-High legend will always match
+        //       the colors in use.
         if (cb)
         { // For colour blindness you can use 2 easy to see colours
 
