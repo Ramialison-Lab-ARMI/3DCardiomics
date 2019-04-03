@@ -105,8 +105,8 @@ public class PanelScript : MonoBehaviour
             GridLayoutGroup grid = this.GetComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(120, 20);
 
-            string geneName = Colour.values[Colour.valuesComp[i].IntegerData].StringData;
-            float conf = Colour.valuesComp[i].FloatData;
+            string geneName = Colour.values[Colour.valuesComp[i].Index].Name;
+            float conf = Colour.valuesComp[i].Value;
 
             // Initiate column 3 (button)
             GameObject newCell1 = Instantiate(col2) as GameObject;

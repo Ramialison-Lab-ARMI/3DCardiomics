@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
- // Needed to access onscreen elements
+// Needed to access onscreen elements
 using System.Collections.Generic;
 using System.Collections;
 using System.Globalization;
@@ -19,35 +19,35 @@ public class Colour : MonoBehaviour
     [DllImport("__Internal")]
     private static extern void JsAlert(string msg);
 
-    public struct DataStringFloatArray // To store geneIdName
+    public struct NamedFloatArray // To store geneIdName with expression values for each part
     {
-        public DataStringFloatArray(string stringValue, float[] floatValues)
+        public NamedFloatArray(string name, float[] values)
         {
-            StringData = stringValue;
-            FloatDatas = floatValues;
+            Name = name;
+            Values = values;
         }
 
-        public string StringData { get; private set; }
+        public string Name { get; private set; }
 
-        public float[] FloatDatas { get; private set; }
+        public float[] Values { get; private set; }
     }
 
-    public struct DataIntFloat // To store the comparison values
+    public struct IntFloatPair // To store the comparison values
     {
-        public DataIntFloat(int intValue, float floatValue)
+        public IntFloatPair(int intValue, float floatValue)
         {
-            IntegerData = intValue;
-            FloatData = floatValue;
+            Index = intValue;
+            Value = floatValue;
         }
 
-        public int IntegerData { get; private set; }
+        public int Index { get; private set; }
 
-        public float FloatData { get; private set; }
+        public float Value { get; private set; }
     }
 
-    public static List<DataStringFloatArray> values = new List<DataStringFloatArray>();
+    public static List<NamedFloatArray> values = new List<NamedFloatArray>();
     // This holds the name and all the 18 values of the gene
-    public static List<DataIntFloat> valuesComp = new List<DataIntFloat>();
+    public static List<IntFloatPair> valuesComp = new List<IntFloatPair>();
     // The comparison values to the current gene
 
     // Provides easy access to all pieces of the heart to iterate over
@@ -55,10 +55,11 @@ public class Colour : MonoBehaviour
     public static int valuesCount = 0;
 
     private static float maxValue;
-    private static bool norm;
     private static string currentGene = "";
+    public GeneSet CurrentGeneSet = null;
     //private static string baseGene = "";
     private static bool cb = false;
+    private bool norm = true;
 
     public InputField IF;
     // Allows you to connect to the inputField to modify it
@@ -67,12 +68,18 @@ public class Colour : MonoBehaviour
     public Button eyeButton;
     public Button colourButton;
     public Sprite eyeCross;
+
+    public Button normButton;
+    public Sprite normEnabledSprite;
+    public Sprite normDisabledSprite;
+
     public Sprite colourBlind;
 
     public Text gText;
     // Allows you access to the geneBtn text
     public Text mText;
     // Mode text
+
 
     // Run on initial load
     void Start()
@@ -93,22 +100,24 @@ public class Colour : MonoBehaviour
         resetColour();
         gText.text = "Current gene: None";
         currentGene = "";
+        CurrentGeneSet = null;
         //baseGene = "";
 
         if (norm)
         {
-            normalise();
+            toggleNormalised();
         }
 
         SetGeneSetLabels("", "");
     }
 
-    public void ResetAll() {
+    public void ResetAll()
+    {
         Reset();
         var scripts = GameObject.Find("ScriptHolder");
         var compare = GameObject.Find("Compare").GetComponentInChildren<Compare>();
         var dpanel = GameObject.Find("Dropdown/dList/dContent");
-         
+
         scripts.GetComponent<Explode>().Reset();
 
         GameObject.Find("MainCamera").GetComponent<CameraRotation>().Reset();
@@ -120,8 +129,12 @@ public class Colour : MonoBehaviour
     // Parse the expression value database in to memory as an array of strings and floats
     public void LoadDatasetFORWEBPLAYER()
     {
-
-        TextAsset textAsset = Resources.Load("fake_mouse_expression_data") as TextAsset; //string input =  result.text;
+#if USE_REAL_DATA
+        var csvFilenameBase = "fernP2_real";
+#else
+        var csvFilenameBase = "fake_mouse_expression_data";
+#endif
+        TextAsset textAsset = Resources.Load(csvFilenameBase) as TextAsset; //string input =  result.text;
         string[] wArray = textAsset.text.Split("\n"[0]);
         Resources.UnloadAsset(textAsset);
 
@@ -131,14 +144,15 @@ public class Colour : MonoBehaviour
         int i = wArray.Length;
 
         maxValue = 0;
-        norm = false;
+        // norm = false;
 
         float current = 0;
 
         while (valuesCount < i)
         {
             line = wArray[valuesCount];
-            char delim = '\t';
+            // char delim = '\t';
+            char delim = ',';
             string[] cols;
             cols = line.Split(delim);
             float[] floats = new float[18];
@@ -154,30 +168,44 @@ public class Colour : MonoBehaviour
                     maxValue = current;
                 }
             }
-            values.Add(new DataStringFloatArray(cols[0].ToLower(), floats)); // Add the gene expression values to values array of floats
+            values.Add(new NamedFloatArray(cols[0].ToLower(), floats)); // Add the gene expression values to values array of floats
 
             valuesCount++;
 
         }
-			
+
         // Sort list (List already sorted in CSV) but: (Excel and C# have different sorting methods, e.g. for '_')
-        //values.Sort((s1, s2) => s1.StringData.CompareTo(s2.StringData));
+        values.Sort((s1, s2) => string.Compare(s1.Name, s2.Name, System.StringComparison.OrdinalIgnoreCase));
     }
 
-    public int FindIndexOfGene(string geneName) {
+    public int FindIndexOfGene(string geneName)
+    {
         // Search the array for the gene name and return its index (location), or -1 if not found.
         for (int i = 0; i < valuesCount; i++)
         {
-            if (geneName.ToLower() == values[i].StringData.ToLower()) return i;
+            if (geneName.ToLower() == values[i].Name.ToLower()) return i;
         }
         return -1;
     }
 
+    public static float[] NormalizeFloatArray(IEnumerable<float> data, float min = 0.0f, float max = 1.0f)
+    {
+        float _max = data.Max();
+        float _min = data.Min();
+        float range = _max - _min;
+
+        return data
+            .Select(d => (d - _min) / range)
+            .Select(n => (float)((1 - n) * min + n * max))
+            .ToArray();
+    }
+
     // Find the expression values corresponding with the entered gene, then start the colouring and similarity calculating processes
     public void ColourFromText(string geneName, bool panel = false)
-    { 
+    {
 
-        currentGene = geneName;
+        currentGene = geneName.Trim();
+        CurrentGeneSet = null;
         int geneIndex = FindIndexOfGene(geneName);
 
         // If the gene name was found, load that dataset into the pieces
@@ -200,19 +228,19 @@ public class Colour : MonoBehaviour
             { // Find the local min and max if in normalised mode
                 for (int i = 0; i < 18; i++)
                 {
-                    if (values[geneIndex].FloatDatas[i] > lMax)
+                    if (values[geneIndex].Values[i] > lMax)
                     {
-                        lMax = values[geneIndex].FloatDatas[i];
+                        lMax = values[geneIndex].Values[i];
                     }
-                    if (values[geneIndex].FloatDatas[i] < lMin)
+                    if (values[geneIndex].Values[i] < lMin)
                     {
-                        lMin = values[geneIndex].FloatDatas[i];
+                        lMin = values[geneIndex].Values[i];
                     }
                 }
             }
             for (int i = 0; i < 18; i++)
             {
-                colourHeartPiece(hp[i], values[geneIndex].FloatDatas[i], lMax, lMin);
+                colourHeartPiece(hp[i], values[geneIndex].Values[i], lMax, lMin);
             }
 
         }
@@ -226,39 +254,51 @@ public class Colour : MonoBehaviour
         }
     }
 
-    public void ColourByGeneSet(GeneSet geneset) {
-        ResetAll();
+    // TODO: Use normalization and colourblind settings in here too
+    public void ColourByGeneSet(GeneSet geneset)
+    {
+        var _normalizePerGene = true;
+
+        // ResetAll();
+
+        currentGene = "";
+        CurrentGeneSet = geneset;
 
         var averageValues = new float[18];
 
         foreach (string geneName in geneset.Genes)
         {
             var geneIndex = FindIndexOfGene(geneName);
+            var expressionForGene = values[geneIndex].Values.ToArray();
+            if (_normalizePerGene)
+            {
+                expressionForGene = NormalizeFloatArray(expressionForGene);
+            }
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log("geneName, geneIndex: " + geneName + ", " + geneIndex);
-            #endif
+#endif
 
             if (geneIndex == -1)
             {
                 Debug.LogError(geneName + " not found.");
-                #if UNITY_WEBGL
+#if UNITY_WEBGL
                 JsAlert(geneName + " is not a valid gene name.");
-                #endif
+#endif
                 return;
             }
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             for (int i = 0; i < 18; i++)
             {
-                Debug.Log("Gene: " + geneName + ", Piece " + i.ToString() + ", Value: " +  values[geneIndex].FloatDatas[i].ToString());
+                Debug.Log("Gene: " + geneName + ", Piece " + i.ToString() + ", Value: " + expressionForGene[i].ToString());
             }
-            #endif
+#endif
 
             // sum
             for (int i = 0; i < 18; i++)
             {
-                averageValues[i] += values[geneIndex].FloatDatas[i];
+                averageValues[i] += expressionForGene[i];
             }
         }
 
@@ -268,27 +308,29 @@ public class Colour : MonoBehaviour
             averageValues[i] /= geneset.Genes.Count;
         }
 
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         for (int i = 0; i < 18; i++)
         {
             Debug.Log("Piece " + i.ToString() + " average: " + averageValues[i].ToString());
         }
         Debug.Log("Min: " + averageValues.Min().ToString());
         Debug.Log("Max: " + averageValues.Max().ToString());
-        #endif
+#endif
 
         // apply average colours to model
         maxValue = averageValues.Max();
+        var minValue = averageValues.Min();
         // norm = true;
         for (int i = 0; i < 18; i++)
         {
-            colourHeartPiece(hp[i], averageValues[i], maxValue, averageValues.Min());
+            colourHeartPiece(hp[i], averageValues[i], maxValue, minValue);
         }
 
         SetGeneSetLabels(geneset.Name, geneset.Description);
     }
 
-    public void SetGeneSetLabels(string name, string description) {
+    public void SetGeneSetLabels(string name, string description)
+    {
         GameObject.Find("GeneSetName").GetComponent<Text>().text = name;
         var descLabel = GameObject.Find("GeneSetDescription").GetComponent<Text>();
         descLabel.text = description;
@@ -314,10 +356,10 @@ public class Colour : MonoBehaviour
     // Calculate the similarity distances (Pearson) between our current gene and the other genes
     public void computeDistancesP(int found)
     {
-		
+
         valuesComp.Clear();
 
-        float[] valuesI = values[found].FloatDatas;
+        float[] valuesI = values[found].Values;
 
         // Compute mean of I row (CurrentV)
         float valuesImean = 0;
@@ -334,7 +376,7 @@ public class Colour : MonoBehaviour
             // CurrentV = I
             // NextV	= J
 
-            float[] valuesJ = values[i].FloatDatas;
+            float[] valuesJ = values[i].Values;
 
             // Compute mean of J row (NextV)
             float valuesJmean = 0;
@@ -372,26 +414,26 @@ public class Colour : MonoBehaviour
 
             if (sum > 0)
             {									// This Gives R^2
-                sum = Mathf.Pow(sum, 2); 	
+                sum = Mathf.Pow(sum, 2);
             }
             else
             {
                 sum = -1 * Mathf.Pow(sum, 2);
             }
-				
+
             if (!float.IsNaN(sum))
             {
-                valuesComp.Add(new DataIntFloat(i, sum));
+                valuesComp.Add(new IntFloatPair(i, sum));
             }
             else
             {
-                valuesComp.Add(new DataIntFloat(i, 0));
+                valuesComp.Add(new IntFloatPair(i, 0));
             }
 
         }
 
         // Remove ABS if you don't want negative (inversee) correlations in your 'Similar Genes' panel
-        valuesComp.Sort((s1, s2) => Mathf.Abs(s2.FloatData).CompareTo(Mathf.Abs(s1.FloatData))); // Sort so that those with most similarity are first
+        valuesComp.Sort((s1, s2) => Mathf.Abs(s2.Value).CompareTo(Mathf.Abs(s1.Value))); // Sort so that those with most similarity are first
         content.GetComponent<PanelScript>().generateTable(found);
     }
 
@@ -435,7 +477,7 @@ public class Colour : MonoBehaviour
         }
         else
         { // Otherwise we can use heatmap colours from blue to red
-			
+
             gck = new GradientColorKey[5];
 
             gck[0].color = new Color(0 / rgb, 0 / rgb, 244 / rgb); // Blue
@@ -454,8 +496,8 @@ public class Colour : MonoBehaviour
         g.SetKeys(gck, new GradientAlphaKey[0]); // Make all colours visible
 
         // Associate a decimal with a colour and change the heart piece
-        GameObject.Find(heartPiece).GetComponent<Renderer>().material.color = g.Evaluate(t); 
-			
+        GameObject.Find(heartPiece).GetComponent<Renderer>().material.color = g.Evaluate(t);
+
     }
 
 
@@ -463,7 +505,7 @@ public class Colour : MonoBehaviour
     // Resets the colour of all the heart pieces back to white
     public void resetColour()
     {
-		
+
         // Resets all heart pieces to white
         for (int i = 0; i < 18; i++)
         {
@@ -473,9 +515,9 @@ public class Colour : MonoBehaviour
     }
 
     // Toggles the colour blind mode
-    public void eyePress()
+    public void toggleColourBlind()
     {
-		
+
         cb = !cb;
 
         if (cb)
@@ -494,21 +536,37 @@ public class Colour : MonoBehaviour
         {
             ColourFromText(currentGene, false);
         }
+        if (CurrentGeneSet != null)
+        {
+            ColourByGeneSet(CurrentGeneSet);
+        }
 
     }
 
     // Stretches the values over all the colour range for more resolution
-    public void normalise()
+    public void toggleNormalised()
     {
-		
+
         norm = !norm;
+
+        if (!norm)
+        {
+            normButton.image.overrideSprite = normDisabledSprite;
+        }
+        else
+        {
+            normButton.image.overrideSprite = null;
+        }
+
 
         // Swap normalise modes if a gene is active
         if (currentGene != "")
         {
             ColourFromText(currentGene, false);
+        }if (CurrentGeneSet != null)
+        {
+            ColourByGeneSet(CurrentGeneSet);
         }
-
 
     }
 

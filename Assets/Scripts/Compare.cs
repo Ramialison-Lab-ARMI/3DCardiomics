@@ -17,17 +17,17 @@ using System.Runtime.InteropServices;
 public class Compare : MonoBehaviour
 {
 
-    public struct DataStringFloatArray // To store geneIdName
+    public struct NamedDoubleArray // To store geneIdName
     {
-        public DataStringFloatArray(string stringValue, float[] floatValues)
+        public NamedDoubleArray(string name, double[] values)
         {
-            StringData = stringValue;
-            FloatDatas = floatValues;
+            Name = name;
+            Values = values;
         }
 
-        public string StringData { get; private set; }
+        public string Name { get; private set; }
 
-        public float[] FloatDatas { get; private set; }
+        public double[] Values { get; private set; }
     }
 
     public GameObject col1;
@@ -53,7 +53,7 @@ public class Compare : MonoBehaviour
     public static List<string> pieces2 = new List<string>();
     private static string csvUrl;
 
-    private List<DataStringFloatArray> values = new List<DataStringFloatArray>();
+    private List<NamedDoubleArray> values = new List<NamedDoubleArray>();
     private string pieceString;
     private string contrasts;
     private int upto;
@@ -212,13 +212,16 @@ public class Compare : MonoBehaviour
         }
 
         // Now let's process the contrasts data
+#if UNITY_EDITOR
+        Debug.Log(contrasts.Length);
+#endif
 
         if (contrasts.Length != 33)
         {
 
             string[] wArray = contrasts.Split("\n"[0]);
 
-            float current;
+            double current;
             string line;
 
             for (int counter = 0; counter < wArray.Length; counter++)
@@ -232,23 +235,23 @@ public class Compare : MonoBehaviour
                 if (cols[0] != "")
                 {
 
-                    float[] floats = new float[18];
+                    double[] _expression = new double[5];
 
                     // Populate the array with values
 
                     for (int j = 1; j < cols.Length; j++)
                     {
-                        current = float.Parse(cols[j], CultureInfo.InvariantCulture.NumberFormat);
-                        floats[j - 1] = current; // Create a temporary array of floats and add expression values
+                        current = double.Parse(cols[j], CultureInfo.InvariantCulture.NumberFormat);
+                        _expression[j - 1] = current; // Create a temporary array with expression values
                     }
 
-                    values.Add(new DataStringFloatArray(cols[0].ToLower(), floats));
+                    values.Add(new NamedDoubleArray(cols[0].ToLower(), _expression));
 
                 }
 
             }
-            // Add the gene expression values to values array of floats
-            values.Sort((s1, s2) => Mathf.Abs(s1.FloatDatas[3]).CompareTo(Mathf.Abs(s2.FloatDatas[3])));
+            // Add the gene expression values to values array
+            values.Sort((s1, s2) => Math.Abs(s1.Values[4]).CompareTo(Math.Abs(s2.Values[4])));
 
             Debug.Log(values.Count);
 
@@ -266,6 +269,7 @@ public class Compare : MonoBehaviour
 
             // Perform the no results function
             Debug.Log("No Results");
+            cText.text = "No Results";
         }
 
         BC.interactable = true;
@@ -276,27 +280,27 @@ public class Compare : MonoBehaviour
 
     }
 
-    bool sortByP = true;
+    bool sortByFDR = true;
 
     public void sortBy()
     {
 
-        if (sortByP)
+        if (sortByFDR)
         {
 
-            sortByP = false;
+            sortByFDR = false;
             sText.text = "FC";
 
-            values.Sort((s1, s2) => Mathf.Abs(s2.FloatDatas[0]).CompareTo(Mathf.Abs(s1.FloatDatas[0])));
+            values.Sort((s1, s2) => Math.Abs(s2.Values[0]).CompareTo(Math.Abs(s1.Values[0])));
 
         }
         else
         {
 
-            sortByP = true;
-            sText.text = "P";
+            sortByFDR = true;
+            sText.text = "FDR";
 
-            values.Sort((s1, s2) => Mathf.Abs(s1.FloatDatas[3]).CompareTo(Mathf.Abs(s2.FloatDatas[3])));
+            values.Sort((s1, s2) => Math.Abs(s1.Values[4]).CompareTo(Math.Abs(s2.Values[4])));
         }
 
         generateTable();
@@ -407,9 +411,9 @@ public class Compare : MonoBehaviour
             GridLayoutGroup grid = this.GetComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(120, 20);
 
-            string geneName = values[i].StringData;
-            float float_fc = values[i].FloatDatas[0];
-            float float_p = values[i].FloatDatas[3];
+            string geneName = values[i].Name;
+            double _fc = values[i].Values[0]; // fold change
+            double _fdr = values[i].Values[4]; // false discovery rate (FDR)
 
             // Initiate column 3 (button)
             GameObject newCell1 = Instantiate(col2) as GameObject;
@@ -427,15 +431,15 @@ public class Compare : MonoBehaviour
             GameObject newCell2 = Instantiate(col1) as GameObject;
             newCell2.tag = "cloneC";
             Text txt2 = newCell2.GetComponent<Text>();
-            if (Math.Abs(float_fc) >= 10)
+            if (Math.Abs(_fc) >= 10)
             {
-                txt2.text = float_fc.ToString("+0.000;-0.000"); //.ToString ("+0.00;−0.00");
+                txt2.text = _fc.ToString("+0.000;-0.000"); //.ToString ("+0.00;−0.00");
             }
             else
             {
-                txt2.text = float_fc.ToString("+0.0000;-0.0000"); //.ToString ("+0.00;−0.00");
+                txt2.text = _fc.ToString("+0.0000;-0.0000"); //.ToString ("+0.00;−0.00");
             }
-            txt2.text += " " + float_p.ToString("0.00E00");
+            txt2.text += " " + _fdr.ToString("0.00E00");
 
             newCell2.transform.SetParent(this.gameObject.transform, false); // Load column 1 in to table
 
@@ -490,8 +494,8 @@ public class Compare : MonoBehaviour
         destroy();
         panelBig.SetActive(false);
 
-        sortByP = true;
-        sText.text = "P";
+        sortByFDR = true;
+        sText.text = "FDR";
     }
 
 }

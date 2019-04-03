@@ -15,11 +15,10 @@ The format of this file is tab-seperated beginning with the item name, and its i
 - Any modern web browser which is WebGL capable
 
 ### Instructions
-Simply run unity and open the root folder of the project. If the heart scene is not visible, open it in unity by browsing to:
+Simply run unity and open the root folder of the project. If the heart scene is not visible, open it in unity by browsing to and double clicking the following file:
 ```
 Assets/3DCardiomics_main.unity
 ```
-and double clicking the file
 
 
 

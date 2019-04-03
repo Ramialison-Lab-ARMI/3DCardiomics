@@ -43,7 +43,7 @@ public class dPanel : MonoBehaviour
 
         // Find where up to in Colour.GeneIdName table (for dropdown selection) we are
         int upTo = 0;
-        while (upTo < Colour.valuesCount && String.Compare(Colour.values[upTo].StringData, geneName) < 0)
+        while (upTo < Colour.valuesCount && String.Compare(Colour.values[upTo].Name, geneName) < 0)
         {
             upTo++;
         }
@@ -68,7 +68,7 @@ public class dPanel : MonoBehaviour
             newCell1.tag = "dClone";
             Button btn = newCell1.GetComponent<Button>();
             btn.name = "Gene";//Colour.geneId [i];
-            string gName = Colour.values[i].StringData;
+            string gName = Colour.values[i].Name;
             btn.onClick.AddListener(delegate
                 {
                     btnAction(gName);

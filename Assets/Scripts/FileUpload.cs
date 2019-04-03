@@ -21,16 +21,6 @@ public class FileUpload : MonoBehaviour
     [DllImport("__Internal")]
     private static extern void JsShowFileInput();
 
-
-//    public struct GeneSet
-//    {
-//        public string Name { get; set; }
-//
-//        public string Description { get; set; }
-//
-//        public List<string> Genes { get; set; }
-//    }
-
     IEnumerator Start()
     {
         yield return null;
@@ -61,6 +51,7 @@ public class FileUpload : MonoBehaviour
         Debug.Log("OnReceiveUpload data: " + data);
 
         var genes = ParseGeneSet(data);
+
         DebugLogGeneSet(genes);
 
         GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes);
