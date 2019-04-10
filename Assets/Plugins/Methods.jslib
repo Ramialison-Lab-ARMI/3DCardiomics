@@ -18,12 +18,21 @@ mergeInto(LibraryManager.library, {
     var inputId = "file";
     var appendTo = "gameContainer";
     
+    /* 
+     * This hidden file input element is disabled until we can fix 
+     * cross-browser support (eg in Firefox)for input.click() triggered via 
+     * pressing the Unity WebGL button, we can revert to using this
+     * 
+     * For the moment, the Unity "Upload" button is disabled and we
+     * are using a visible <input type="file"> in the HTML template.
+    
     var input = document.createElement("input");
+    var form = document.createElement("form");
+    var label = document.createElement("label");
     input.setAttribute("type", "file");
     input.setAttribute("name", inputId);
     input.setAttribute("id", inputId);
-    // hidden inputs can't be 'clicked' via Javascript
-    // input.setAttribute("hidden", true);
+
     input.style.position = "absolute";
     input.style.display = "none";
     input.style.cursor = "inherit";
@@ -33,7 +42,9 @@ mergeInto(LibraryManager.library, {
     input.style.minHeight = "100%";
     input.style.opacity = 0;
     input.style.filter = "alpha(opacity=0)";
+    
     document.getElementById(appendTo).appendChild(input);
+    */
     
     document.getElementById(inputId).onchange = function(e) {
         console.log('file input onchange');
@@ -53,8 +64,10 @@ mergeInto(LibraryManager.library, {
   JsShowFileInput: function() {
     var inputId = "file";
     var input = document.getElementById(inputId);
+    // input.style.display = "inline";
     input.focus();
     input.click();
+    // input.style.display = "none";
     document.getElementById("#canvas").focus();
   },
 });

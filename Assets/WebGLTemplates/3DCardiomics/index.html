@@ -71,11 +71,19 @@
 		<img src="Template/fullscreen.png" width="38" height="38" alt="Fullscreen" title="Fullscreen"
 			onclick="gameInstance.SetFullscreen(1);">
 	</div>
-	<div class="webgl-content">
-		<div style="margin: auto">
-		<div id="gameContainer"></div>
-		</div>
-	</div>
+    <div class="webgl-content">
+        <div style="margin: auto">
+            <div id="gameContainer"></div>
+
+        </div>
+        <form>
+            <div style="background: #B3ECF5; border-radius: 4px; border-color: black; border: solid; border-width: 1px; padding: 8px; max-width: 10%; text-align: center;">
+                <input type="file" id="file"
+                       style="display: none; position: absolute; cursor: inherit; top: -1000px; bottom: -1000px; right: -1000px; min-width: 100%; max-width: 100%; opacity: 0;">
+                <label for="file">Upload gene set</label>
+            </div>
+        </form>
+    </div>
 	<div>
 		<table border="0">
 
