@@ -54,7 +54,7 @@ public class Colour : MonoBehaviour
     public static string[] hp = new string[18] { "A_1", "A_2", "A_3", "A_4", "B_1", "B_2", "B_3", "B_4", "C_1", "C_2", "C_3", "C_4", "D_1", "D_2", "D_3", "E_1", "E_2", "E_3" };
     public static int valuesCount = 0;
 
-    private static float maxValue;
+    private float maxValue;
     private static string currentGene = "";
     public GeneSet CurrentGeneSet = null;
     //private static string baseGene = "";
@@ -109,6 +109,7 @@ public class Colour : MonoBehaviour
         }
 
         SetGeneSetLabels("", "");
+        SetMaxValue();
     }
 
     public void ResetAll()
@@ -178,6 +179,15 @@ public class Colour : MonoBehaviour
         values.Sort((s1, s2) => string.Compare(s1.Name, s2.Name, System.StringComparison.OrdinalIgnoreCase));
     }
 
+    public void SetMaxValue()
+    {
+        maxValue = 0;
+        for (int i = 0; i < 18; i++)
+        {
+            maxValue = Mathf.Max(maxValue, values[i].Values.Max());
+        }
+    }
+
     public int FindIndexOfGene(string geneName)
     {
         // Search the array for the gene name and return its index (location), or -1 if not found.
@@ -203,7 +213,7 @@ public class Colour : MonoBehaviour
     // Find the expression values corresponding with the entered gene, then start the colouring and similarity calculating processes
     public void ColourFromText(string geneName, bool panel = false)
     {
-
+        SetMaxValue();
         currentGene = geneName.Trim();
         CurrentGeneSet = null;
         int geneIndex = FindIndexOfGene(geneName);
