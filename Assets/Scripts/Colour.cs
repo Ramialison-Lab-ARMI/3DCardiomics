@@ -264,7 +264,8 @@ public class Colour : MonoBehaviour
         }
     }
 
-    // TODO: Use normalization and colourblind settings in here too
+    // TODO: Consider making this a coroutine so we can show a loading spinner
+    //       for larger gene sets.
     public void ColourByGeneSet(GeneSet geneset)
     {
         var _normalizePerGene = true;

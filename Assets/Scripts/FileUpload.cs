@@ -59,13 +59,19 @@ public class FileUpload : MonoBehaviour
 
     public GeneSet LoadPresetGeneSet(string resourceName)
     {
-        TextAsset textAsset = Resources.Load(resourceName) as TextAsset;
+        TextAsset textAsset = Resources.Load("genesets/" + resourceName) as TextAsset;
         var genes = ParseGeneSet(textAsset.text);
         Resources.UnloadAsset(textAsset);
 
         DebugLogGeneSet(genes);
 
         return genes;
+    }
+
+    public void ShowPresetGeneSet(string genesetName)
+    {
+        var genes = LoadPresetGeneSet(genesetName);
+        GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes);
     }
 
     public void DebugLogGeneSet(GeneSet genes)
