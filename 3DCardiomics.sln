@@ -1,7 +1,7 @@
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2008
-
-Project("{CD51F5C3-28A6-4BAF-6262-4311B9C3B25A}") = "3DCardiomics", "Assembly-CSharp.csproj", "{2C289CB1-A5F6-AE0E-5028-BC2742B2DF54}"
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp", "Assembly-CSharp.csproj", "{2C289CB1-A5F6-AE0E-5028-BC2742B2DF54}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

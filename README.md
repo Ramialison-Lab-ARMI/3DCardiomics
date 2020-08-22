@@ -13,7 +13,7 @@ Assets/Resources/fake_mouse_expression_data.txt
 The format of this file is tab-seperated beginning with the item name, and its intensity in the (18) locations. A sample file is provided with a few randomised values to demonstrate the functionality, pending final publication of the results.
 
 ### Dependencies
-- Unity (we are using 2018.3.10f1)
+- Unity (we are using 2018.4.23.f1)
 - Any modern web browser which is WebGL capable
 
 ### Instructions
