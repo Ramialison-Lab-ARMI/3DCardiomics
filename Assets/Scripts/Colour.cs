@@ -139,8 +139,6 @@ public class Colour : MonoBehaviour
         string[] wArray = textAsset.text.Split("\n"[0]);
         Resources.UnloadAsset(textAsset);
 
-        Debug.Log(wArray.Length);
-
         string line;
         int i = wArray.Length;
 
@@ -210,6 +208,32 @@ public class Colour : MonoBehaviour
             .ToArray();
     }
 
+    public string[] GetMouseGeneNames(string csvFilenameBase = "GENE-DESCRIPTION-TSV_MGI_9")
+    {
+        // Parse gene names from:
+        //  http://download.alliancegenome.org/3.1.1/GENE-DESCRIPTION-TSV/MGI/GENE-DESCRIPTION-TSV_MGI_9.tsv
+        //
+
+        TextAsset textAsset = Resources.Load(csvFilenameBase) as TextAsset;
+        Debug.Log("textAsset.name" + textAsset.name);
+        string[] lines = textAsset.text.Split(
+            new[] { "\r\n", "\r", "\n", "\\r\\n", "\\r", "\\n" },
+            System.StringSplitOptions.RemoveEmptyEntries);
+
+        var geneNames = new List<string>();
+        foreach (var line in lines)
+        {
+            if (line[0] == "#"[0] || string.IsNullOrEmpty(line.Trim()))
+            {
+                continue;
+            }
+            string[] fields = line.Split(new[] { "\t"[0] });
+            geneNames.Add(fields[1].Trim().ToLower());
+        }
+
+        return geneNames.ToArray();
+    }
+
     // Find the expression values corresponding with the entered gene, then start the colouring and similarity calculating processes
     public void ColourFromText(string geneName, bool panel = false)
     {
@@ -269,6 +293,9 @@ public class Colour : MonoBehaviour
     public void ColourByGeneSet(GeneSet geneset)
     {
         var _normalizePerGene = true;
+        var allMouseGeneNames = GetMouseGeneNames();
+        //Debug.Log(allMouseGeneNames.Length);
+        //Debug.Log(geneset.Genes.Count);
 
         // ResetAll();
 
@@ -280,6 +307,25 @@ public class Colour : MonoBehaviour
         foreach (string geneName in geneset.Genes)
         {
             var geneIndex = FindIndexOfGene(geneName);
+            if (geneIndex == -1)
+            {
+                // Debug.LogError("WARNING: Gene name " + geneName + " not found in expression dataset.");
+                Debug.Log("WARNING: Gene name " + geneName + " not found in expression dataset.");
+#if UNITY_WEBGL
+                //JsAlert(geneName + " is not a valid gene name.");
+#endif
+                //return;
+                continue;
+            }
+
+            if (System.Array.IndexOf(allMouseGeneNames, geneName.ToLower()) == -1)
+            {
+                Debug.LogError("ERROR: Gene '" + geneName + "' is not a valid mouse gene name.");
+                JsAlert(geneName + " is not a valid MGI mouse gene symbol (GRCm38, MGI vM9). " +
+                        "Maybe you need to convert your gene identifiers at http://www.informatics.jax.org/batch ?");
+                return;
+            }
+
             var expressionForGene = values[geneIndex].Values.ToArray();
             if (_normalizePerGene)
             {
@@ -290,14 +336,7 @@ public class Colour : MonoBehaviour
             Debug.Log("geneName, geneIndex: " + geneName + ", " + geneIndex);
 #endif
 
-            if (geneIndex == -1)
-            {
-                Debug.LogError(geneName + " not found.");
-#if UNITY_WEBGL
-                JsAlert(geneName + " is not a valid gene name.");
-#endif
-                return;
-            }
+
 
 #if UNITY_EDITOR
             for (int i = 0; i < 18; i++)
@@ -574,7 +613,8 @@ public class Colour : MonoBehaviour
         if (currentGene != "")
         {
             ColourFromText(currentGene, false);
-        }if (CurrentGeneSet != null)
+        }
+        if (CurrentGeneSet != null)
         {
             ColourByGeneSet(CurrentGeneSet);
         }
