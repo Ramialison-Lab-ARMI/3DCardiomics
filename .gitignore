@@ -6,8 +6,6 @@ Temp/
 3D-64.app
 Library/
 Obj/
-Assets/Resources/fernP4_real.txt
-Assets/Resources/fernP4_real.txt.meta
+Assets/Resources/fernP4_real.*
 Assets/WebGLTemplates.meta
 Assets/Editor.meta
-

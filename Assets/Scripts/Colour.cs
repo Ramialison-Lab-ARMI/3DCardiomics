@@ -51,7 +51,12 @@ public class Colour : MonoBehaviour
     // The comparison values to the current gene
 
     // Provides easy access to all pieces of the heart to iterate over
-    public static string[] hp = new string[18] { "A_1", "A_2", "A_3", "A_4", "B_1", "B_2", "B_3", "B_4", "C_1", "C_2", "C_3", "C_4", "D_1", "D_2", "D_3", "E_1", "E_2", "E_3" };
+    public static string[] hp = new string[18] {
+        "A_1", "A_2", "A_3", "A_4",
+        "B_1", "B_2", "B_3", "B_4",
+        "C_1", "C_2", "C_3", "C_4",
+        "D_1", "D_2", "D_3",
+        "E_1", "E_2", "E_3" };
     public static int valuesCount = 0;
 
     private float maxValue;
@@ -60,6 +65,11 @@ public class Colour : MonoBehaviour
     //private static string baseGene = "";
     private static bool cb = false;
     private bool norm = true;
+
+    public HashSet<string> allGeneNames = null;
+    public Dictionary<string, int> expressionDataNameIndexMapping = null;
+
+    private bool _allGenes_ready = false;
 
     public InputField IF;
     // Allows you to connect to the inputField to modify it
@@ -75,6 +85,8 @@ public class Colour : MonoBehaviour
 
     public Sprite colourBlind;
 
+    public GameObject loadingSpinner;
+
     public Text gText;
     // Allows you access to the geneBtn text
     public Text mText;
@@ -84,9 +96,23 @@ public class Colour : MonoBehaviour
     // Run on initial load
     void Start()
     {
-        //LoadDataset ();
+        // cache the array of all mouse gene names
+        // allGeneNames = ValidGeneNames.names; // GetValidGeneNames();
+        var _initValidGeneNamesAsync = StartCoroutine(InitValidGeneNames());
+        // Debug.Log(allGeneNames.Count);
+
+        //LoadDataset();
         LoadDatasetFORWEBPLAYER();
         resetColour();
+
+        // Must be called AFTER LoadDatasetFORWEBPLAYER / LoadDataset
+        InitExpressionDataNameIndexMapping();
+
+        // For testing gene set display in Unity Editor
+#if UNITY_EDITOR
+        var fileUpload = GameObject.Find("ScriptHolder").GetComponent<FileUpload>();
+        fileUpload.ShowPresetGeneSet("cluster_1");
+#endif
     }
 
 
@@ -196,6 +222,14 @@ public class Colour : MonoBehaviour
         return -1;
     }
 
+    public void InitExpressionDataNameIndexMapping() {
+        expressionDataNameIndexMapping = new Dictionary<string, int>(valuesCount);
+        for (int i = 0; i < valuesCount; i++)
+        {
+            expressionDataNameIndexMapping.Add(values[i].Name.ToLower(), i);
+        }
+    }
+
     public static float[] NormalizeFloatArray(IEnumerable<float> data, float min = 0.0f, float max = 1.0f)
     {
         float _max = data.Max();
@@ -208,11 +242,45 @@ public class Colour : MonoBehaviour
             .ToArray();
     }
 
-    public string[] GetMouseGeneNames(string csvFilenameBase = "GENE-DESCRIPTION-TSV_MGI_9")
+    public IEnumerator InitValidGeneNames(string csvFilenameBase = "valid_gene_names")
+    {
+        int yield_every = 1000;
+
+        TextAsset textAsset = Resources.Load(csvFilenameBase) as TextAsset;
+        // Debug.Log("textAsset.name" + textAsset.name);
+        string[] lines = textAsset.text.Split(
+            new[] { "\r\n", "\r", "\n", "\\r\\n", "\\r", "\\n" },
+            System.StringSplitOptions.RemoveEmptyEntries);
+
+        allGeneNames = new HashSet<string>();
+        int count = 0;
+        foreach (var line in lines)
+        {
+            if (line[0] == "#"[0] || string.IsNullOrEmpty(line.Trim()))
+            {
+                continue;
+            }
+            allGeneNames.Add(line.Trim().ToLower());
+            count++;
+            if ((count % yield_every) == 0) {
+                // yield return null;
+                // Debug.Log(allGeneNames.Count);
+                yield return new WaitForSeconds(.05f);
+            }
+        }
+
+        // return allGeneNames;
+        _allGenes_ready = true;
+        // Debug.Log(allGeneNames.Count);
+    }
+
+    public HashSet<string> GetMGIGeneNames(string csvFilenameBase = "GENE-DESCRIPTION-TSV_MGI_9.tsv")
     {
         // Parse gene names from:
+        //
         //  http://download.alliancegenome.org/3.1.1/GENE-DESCRIPTION-TSV/MGI/GENE-DESCRIPTION-TSV_MGI_9.tsv
         //
+        //  as `Resources/GENE-DESCRIPTION-TSV_MGI_9.tsv.txt`
 
         TextAsset textAsset = Resources.Load(csvFilenameBase) as TextAsset;
         Debug.Log("textAsset.name" + textAsset.name);
@@ -220,7 +288,7 @@ public class Colour : MonoBehaviour
             new[] { "\r\n", "\r", "\n", "\\r\\n", "\\r", "\\n" },
             System.StringSplitOptions.RemoveEmptyEntries);
 
-        var geneNames = new List<string>();
+        var geneNames = new HashSet<string>();
         foreach (var line in lines)
         {
             if (line[0] == "#"[0] || string.IsNullOrEmpty(line.Trim()))
@@ -231,7 +299,7 @@ public class Colour : MonoBehaviour
             geneNames.Add(fields[1].Trim().ToLower());
         }
 
-        return geneNames.ToArray();
+        return geneNames;
     }
 
     // Find the expression values corresponding with the entered gene, then start the colouring and similarity calculating processes
@@ -288,13 +356,20 @@ public class Colour : MonoBehaviour
         }
     }
 
-    // TODO: Consider making this a coroutine so we can show a loading spinner
-    //       for larger gene sets.
-    public void ColourByGeneSet(GeneSet geneset)
+    public IEnumerator ColourByGeneSet(GeneSet geneset)
     {
+        yield return new WaitForSeconds(5f);
+        int yield_every = 10;
+        float yield_time = 0.05f;
+
+        loadingSpinner.SetActive(true);
+
+        // allGeneNames gets populated on startup - we can't do anything until it's filled
+        while (!_allGenes_ready) {
+            yield return new WaitForSeconds(0.2f);
+        }
+
         var _normalizePerGene = true;
-        var allMouseGeneNames = GetMouseGeneNames();
-        //Debug.Log(allMouseGeneNames.Length);
         //Debug.Log(geneset.Genes.Count);
 
         // ResetAll();
@@ -302,30 +377,43 @@ public class Colour : MonoBehaviour
         currentGene = "";
         CurrentGeneSet = geneset;
 
+        // valid genes in the uploaded gene set which are absent in the expression data
+        var missingGenes = new List<string>();
+
         var averageValues = new float[18];
 
+        int count = 0;
         foreach (string geneName in geneset.Genes)
         {
-            var geneIndex = FindIndexOfGene(geneName);
-            if (geneIndex == -1)
+            count++;
+            var geneNameLower = geneName.ToLower();
+
+            if (!expressionDataNameIndexMapping.ContainsKey(geneNameLower))
             {
-                // Debug.LogError("WARNING: Gene name " + geneName + " not found in expression dataset.");
-                Debug.Log("WARNING: Gene name " + geneName + " not found in expression dataset.");
+                // Debug.Log("WARNING: Gene name " + geneName + " not found in expression dataset.");
+                missingGenes.Add(geneName);
 #if UNITY_WEBGL
                 //JsAlert(geneName + " is not a valid gene name.");
 #endif
                 //return;
+                if (count % yield_every == 0) {
+                    yield return new WaitForSeconds(yield_time);
+                }
                 continue;
             }
 
-            if (System.Array.IndexOf(allMouseGeneNames, geneName.ToLower()) == -1)
+            if (!allGeneNames.Contains(geneNameLower))
             {
                 Debug.LogError("ERROR: Gene '" + geneName + "' is not a valid mouse gene name.");
                 JsAlert(geneName + " is not a valid MGI mouse gene symbol (GRCm38, MGI vM9). " +
                         "Maybe you need to convert your gene identifiers at http://www.informatics.jax.org/batch ?");
-                return;
+                loadingSpinner.SetActive(false);
+                //return;
+                yield break;
             }
 
+            var geneIndex = expressionDataNameIndexMapping[geneNameLower];
+            // var geneIndex = FindIndexOfGene(geneName);
             var expressionForGene = values[geneIndex].Values.ToArray();
             if (_normalizePerGene)
             {
@@ -336,20 +424,28 @@ public class Colour : MonoBehaviour
             Debug.Log("geneName, geneIndex: " + geneName + ", " + geneIndex);
 #endif
 
-
-
 #if UNITY_EDITOR
             for (int i = 0; i < 18; i++)
             {
                 Debug.Log("Gene: " + geneName + ", Piece " + i.ToString() + ", Value: " + expressionForGene[i].ToString());
             }
 #endif
-
             // sum
             for (int i = 0; i < 18; i++)
             {
                 averageValues[i] += expressionForGene[i];
             }
+
+            if (count % yield_every == 0) {
+                yield return new WaitForSeconds(yield_time);
+            }
+        }
+
+        if (missingGenes.Count > 0)
+        {
+            var _warningMsg = "WARNING: Some genes in the geneset are valid mouse genes but are absent from the expression dataset: " + string.Join(", ", missingGenes);
+            Debug.Log(_warningMsg);
+            JsAlert(_warningMsg);
         }
 
         // divide by number of genes in the set to obtain the average
@@ -357,6 +453,7 @@ public class Colour : MonoBehaviour
         {
             averageValues[i] /= geneset.Genes.Count;
         }
+        yield return null;
 
 #if UNITY_EDITOR
         for (int i = 0; i < 18; i++)
@@ -365,6 +462,7 @@ public class Colour : MonoBehaviour
         }
         Debug.Log("Min: " + averageValues.Min().ToString());
         Debug.Log("Max: " + averageValues.Max().ToString());
+        yield return null;
 #endif
 
         // apply average colours to model
@@ -374,9 +472,12 @@ public class Colour : MonoBehaviour
         for (int i = 0; i < 18; i++)
         {
             colourHeartPiece(hp[i], averageValues[i], maxValue, minValue);
+            yield return null;
         }
 
         SetGeneSetLabels(geneset.Name, geneset.Description);
+
+        loadingSpinner.SetActive(false);
     }
 
     public void SetGeneSetLabels(string name, string description)
@@ -588,7 +689,7 @@ public class Colour : MonoBehaviour
         }
         if (CurrentGeneSet != null)
         {
-            ColourByGeneSet(CurrentGeneSet);
+            StartCoroutine(ColourByGeneSet(CurrentGeneSet));
         }
 
     }
@@ -616,7 +717,7 @@ public class Colour : MonoBehaviour
         }
         if (CurrentGeneSet != null)
         {
-            ColourByGeneSet(CurrentGeneSet);
+            StartCoroutine(ColourByGeneSet(CurrentGeneSet));
         }
 
     }

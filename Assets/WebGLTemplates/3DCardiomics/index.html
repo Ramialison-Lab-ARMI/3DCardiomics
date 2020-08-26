@@ -130,7 +130,6 @@
 			gameInstance.SendMessage("ScriptHolder", "ShowPresetGeneSet", name);
 
 		}
-
 	</script>
 
 	<script>
@@ -186,7 +185,8 @@
 					</select>
 				</div>
 				<div style="grid-column: 2 / 3; grid-row: 2 / 3;"
-					class="ui-button">
+					class="ui-button"
+					id="file-upload-button">
 					<input type="file" id="file">
 					<label for="file">Upload gene set</label>
 				</div>
@@ -326,6 +326,10 @@
 			});
 		}
 		gameContainer.addEventListener("wheel", ScrollingY, true);
+
+		document.getElementById('file-upload-button').onclick = function() {
+			document.getElementById('file').click();
+		}
 	</script>
 </body>
 

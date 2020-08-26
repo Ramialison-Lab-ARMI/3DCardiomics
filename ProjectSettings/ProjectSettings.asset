@@ -563,8 +563,8 @@ PlayerSettings:
   splashScreenBackgroundSourcePortrait: {fileID: 0}
   spritePackerPolicy: 
   webGLMemorySize: 256
-  webGLExceptionSupport: 0
-  webGLNameFilesAsHashes: 0
+  webGLExceptionSupport: 2
+  webGLNameFilesAsHashes: 1
   webGLDataCaching: 1
   webGLDebugSymbols: 1
   webGLEmscriptenArgs: 
@@ -585,7 +585,7 @@ PlayerSettings:
     WebGL: 1
     iOS: 0
   il2cppCompilerConfiguration:
-    WebGL: 0
+    WebGL: 1
   managedStrippingLevel: {}
   incrementalIl2cppBuild:
     iOS: 0

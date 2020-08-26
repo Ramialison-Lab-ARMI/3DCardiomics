@@ -21,6 +21,8 @@ public class FileUpload : MonoBehaviour
     [DllImport("__Internal")]
     private static extern void JsShowFileInput();
 
+    public GameObject loadingSpinner;
+
     IEnumerator Start()
     {
         yield return null;
@@ -30,7 +32,7 @@ public class FileUpload : MonoBehaviour
         #endif
 
         // var genes = LoadPresetGeneSet("geneset");
-        // GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes);
+        // StartCoroutine(GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes));
     }
 
     public void ShowFileUploadDialog()
@@ -42,28 +44,43 @@ public class FileUpload : MonoBehaviour
 
     public void OnReceiveUpload(string jsonText)
     {
+        GeneSet genes = null;
+        try {
+            loadingSpinner.SetActive(true);
+            var json = JSONObject.Parse(jsonText);
+            var filename = json.GetString("filename");
+            var data = json.GetString("data");
 
-        var json = JSONObject.Parse(jsonText);
-        var filename = json.GetString("filename");
-        var data = json.GetString("data");
+            Debug.Log("OnReceiveUpload filename: " + filename);
+            Debug.Log("OnReceiveUpload data: " + data);
 
-        Debug.Log("OnReceiveUpload filename: " + filename);
-        Debug.Log("OnReceiveUpload data: " + data);
+            genes = ParseGeneSet(data);
 
-        var genes = ParseGeneSet(data);
+            DebugLogGeneSet(genes);
+        }
+        catch {
+            loadingSpinner.SetActive(false);
+        }
 
-        DebugLogGeneSet(genes);
-
-        GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes);
+        StartCoroutine(GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes));
     }
 
     public GeneSet LoadPresetGeneSet(string resourceName)
     {
-        TextAsset textAsset = Resources.Load("genesets/" + resourceName) as TextAsset;
-        var genes = ParseGeneSet(textAsset.text);
-        Resources.UnloadAsset(textAsset);
+        GeneSet genes = null;
+        try
+        {
+            loadingSpinner.SetActive(true);
 
-        DebugLogGeneSet(genes);
+            TextAsset textAsset = Resources.Load("genesets/" + resourceName) as TextAsset;
+            genes = ParseGeneSet(textAsset.text);
+            Resources.UnloadAsset(textAsset);
+
+            DebugLogGeneSet(genes);
+        }
+        catch {
+            loadingSpinner.SetActive(false);
+        }
 
         return genes;
     }
@@ -71,7 +88,7 @@ public class FileUpload : MonoBehaviour
     public void ShowPresetGeneSet(string genesetName)
     {
         var genes = LoadPresetGeneSet(genesetName);
-        GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes);
+        StartCoroutine(GameObject.Find("ScriptHolder").GetComponent<Colour>().ColourByGeneSet(genes));
     }
 
     public void DebugLogGeneSet(GeneSet genes)
