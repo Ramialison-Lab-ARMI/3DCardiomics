@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="keywords"
+		content="3D, cardiomics, ramialison, tokolyi, transcriptome, visualisation, visualization, cardiac, heart, 3-D, three-dimensional">
+	<meta name="description"
+		content="3D-Cardiomics allows you to view the adult heart transcriptome in 3D, compare pieces of the heart, and view similarly expressed genes! Please refer to the quick start guide below for more information." />
+	<base target="_blank">
+	<title>3D-Cardiomics: Heart Transcriptomics in Three Dimensions</title>
+	<link rel="shortcut icon" href="Template/favicon.ico">
+	<link rel="stylesheet" href="Template/style.css">
+
+	<style>
+		/* These styles need to be inline here or they won't override styles that 
+		UnityLoader (gameInstance) applies to the #gameContainer */
+		body {
+			margin: 0;
+		}
+
+		#gameContainer {
+			margin: auto !important;
+			width: 1200px;
+			height: 600px;
+			/*
+			width: 100vw; 
+			height: 100vh; 
+			*/
+		}
+
+		canvas {
+			width: 100%;
+			height: 100%;
+			display: block;
+		}
+
+		#file {
+			display: none;
+			position: absolute;
+			cursor: inherit;
+			top: -1000px;
+			bottom: -1000px;
+			right: -1000px;
+			min-width: 100%;
+			max-width: 100%;
+			opacity: 0;
+		}
+
+		.ui-button {
+			background: #B3ECF5;
+			border-radius: 4px;
+			border-color: black;
+			border: solid;
+			border-width: 1px;
+			padding: 8px;
+			max-width: 100%;
+			text-align: center;
+		}
+
+		.ui-select {
+			display: block;
+			height: 100%;
+			padding: .6em 1.4em .5em .8em;
+			width: 100%;
+			max-width: 100%; 
+			box-sizing: border-box;
+			margin: 0;
+			border-color: black;
+			border-radius: 4px;
+			-moz-appearance: none;
+			-webkit-appearance: none;
+			appearance: none;
+			background-color: #B3ECF5;
+			background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23000000%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');	
+			background-repeat: no-repeat, repeat;
+			background-position: right .7em top 50%, 0 0;
+			background-size: .65em auto, 100%;
+
+		}
+		.ui-select::-ms-expand {
+			display: none;
+		}
+		.ui-select:hover {
+			border-color: #888;
+		}
+		.ui-select:focus {
+			border-color: #aaa;
+			box-shadow: 0 0 1px 3px rgba(59, 153, 252, .7);
+			box-shadow: 0 0 0 3px -moz-mac-focusring;
+			outline: none;
+		}
+		.ui-select option {
+			font-weight:normal;
+		}
+
+		div.ui-button:hover {
+			background: rgb(0, 221, 255);
+		}
+
+		div.ui-button:active {
+			background: #dfe8ed;
+		}
+	</style>
+
+	<script src="Template/UnityProgress.js"></script>
+	<script src="Build/1a1df677b7b0b713cd15ce9b3f199f7f.js"></script>
+	<script>
+		var gameInstance = UnityLoader.instantiate("gameContainer", "Build/fe9547747758465f39c61d343e3c3b50.json", {
+			onProgress: UnityProgress,
+			Module: {
+				TOTAL_MEMORY: 268435456,
+				backgroundColor: "#e4f4fc",
+				splashStyle: "Light",
+				compatibilitycheck: null,
+				errorhandler: null,
+			}
+		});
+
+		function LoadPresetGeneSet(name) {
+			if (name == 'null') {
+				gameInstance.SendMessage("ScriptHolder", "ResetAll");
+				return;
+		    }
+
+			if (name === undefined) {
+				name = document.getElementById('geneset-select').value;
+			}
+			gameInstance.SendMessage("ScriptHolder", "ShowPresetGeneSet", name);
+
+		}
+	</script>
+
+	<script>
+		(function (i, s, o, g, r, a, m) {
+			i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+				(i[r].q = i[r].q || []).push(arguments)
+			}, i[r].l = 1 * new Date(); a = s.createElement(o),
+				m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+		})(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+		ga('create', 'UA-87535217-1', 'auto');
+		ga('send', 'pageview');
+	</script>
+
+</head>
+
+<body>
+	<h1>3D-Cardiomics</h1>
+	<div class="topcorner">
+		<img src="Template/fullscreen.png" width="38" height="38" alt="Fullscreen" title="Fullscreen"
+			onclick="gameInstance.SetFullscreen(1);">
+	</div>
+	<div class="webgl-content">
+		<div style="margin: auto">
+			<div id="gameContainer"></div>
+
+		</div>
+	</div>
+	<form>
+		<div style="display: grid; grid-gap: 4px; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); margin: auto; width: 60%;">
+				<div style="padding-top: 1em; text-align: left; grid-column: 1 / 2; grid-row: 1 / 2;">
+					Select cluster gene set
+				</div>
+				<div style="grid-column: 1 / 2; grid-row: 2 / 3;">
+					<select class="ui-select"
+							id="geneset-select" 
+							onchange="LoadPresetGeneSet(value)">
+						<option value="null">---</option>
+						<option value="cluster_1">Cluster 1</option>
+						<option value="cluster_2">Cluster 2</option>
+						<option value="cluster_3">Cluster 3</option>
+						<option value="cluster_4">Cluster 4</option>
+						<option value="cluster_5">Cluster 5</option>
+						<option value="cluster_6">Cluster 6</option>
+						<option value="cluster_7">Cluster 7</option>
+						<option value="cluster_8">Cluster 8</option>
+						<option value="cluster_9">Cluster 9</option>
+						<option value="cluster_10">Cluster 10</option>
+						<option value="cluster_11">Cluster 11</option>
+						<option value="cluster_12">Cluster 12</option>
+						<option value="cluster_13">Cluster 13</option>
+						<option value="cluster_14">Cluster 14</option>
+						<option value="cluster_15">Cluster 15</option>
+					</select>
+				</div>
+				<div style="grid-column: 2 / 3; grid-row: 2 / 3;"
+					class="ui-button"
+					id="file-upload-button">
+					<input type="file" id="file">
+					<label for="file">Upload gene set</label>
+				</div>
+		</div>
+    </form>
+	<div>
+		<table border="0">
+
+			<tr>
+				<td><br>
+					3D-Cardiomics allows you to view the adult heart transcriptome in 3D, compare pieces of the
+					heart,
+					and
+					view similarly expressed genes! Please refer to the quick start guide below for more
+					information.
+				</td>
+			</tr>
+
+			<tr>
+				<td>
+					<p>Created by Monika Mohenska*, Nathalia M. Tan*, Alex Tokolyi*,
+						Milena B. Furtado, Mauro W. Costa, Andrew J. Perry, Jessica Hatwell-Humble, Jan M. Ruijter,
+						Hieu T. Nim, Susan K. Nilsson, Nadia A. Rosenthal, David R. Powell, Fernando J. Rossello,
+						<a href="http://www.armi.org.au/about/our-people/mirana-ramialison">Mirana Ramialison</a>^,
+						and
+						<a href="http://www.armi.org.au/research-leadership/polo-group">Jose M. Polo</a>^.</p>
+
+					<p>Please visit our
+						<a href="https://github.com/Ramialison-Lab-ARMI/3DCardiomics">GitHub repository</a>
+						to access the source code for 3D-Cardiomics.</p>
+
+					<div>
+						<map name="researchmap">
+							<area href="https://www.monash.edu/discovery-institute" shape="rect" coords="1,14,168,67">
+							<area href="http://www.armi.org.au/" shape="rect" coords="187,8,328,70">
+						</map>
+					</div>
+					<p><img src="Template/mon_armi_transparent.png" height="80" alt="" usemap="#researchmap"></p>
+
+				</td>
+			</tr>
+
+			<tr>
+				<td class="qs">
+					<h3>Quick Start Guide</h3>
+
+					<b>1. Searching for a gene</b><br><br>
+
+					We use the MGI gene symbols (GRCm38, MGI vM9). To find the one which is synonymous with your target gene, please
+					perform a
+					query here:
+					<a href="http://www.informatics.jax.org/batch"
+						target="_blank">http://www.informatics.jax.org/batch</a>
+					<br><br>
+					Once you have the MGI gene name, enter it in to the search field at the top of the screen, then
+					select
+					your target gene to load it on to the 3D heart.
+					<br><br>
+					<b>2. Adjusting the view</b><br><br>
+					If you want to view inside the heart, click the ‘Expand’ button to spread out the pieces, and
+					click
+					it
+					again (or press the ‘Reset’ button at any stage) to return it to normal. To rotate the heart,
+					you
+					can
+					click and drag with your mouse or use the directional keys on your keyboard.
+					<br><br>
+					A key which explains the relative highs and lows of the gradients can be found by hovering the
+					mouse
+					over the colour symbol in the top left corner. To switch between absolute mode (A), and
+					normalised
+					mode
+					(N), click on the (A) symbol. On top of this, clicking the eye symbol enables colour blind mode,
+					using a
+					narrower range of colours but ultimately representing the same information.
+					<br><br>
+					<b>3. Viewing similar genes</b><br><br>
+					After selecting a gene from the top menu, similar genes (by Pearson correlation) will be
+					calculated
+					and
+					the coefficient of determination (as a percentage) presented in the panel on the right side of
+					the
+					screen. Clicking any of the names will load the gene on to the 3D heart.
+					<br><br>
+					<b>4. Comparing expression between heart pieces</b><br><br>
+					Begin by selecting the red ‘Compare’ button on the panel on the left side of the screen. The
+					indicator
+					will then change to ‘Select Group 1 Piece(s)’; click on the heart pieces to add them to the
+					first
+					group,
+					and click again to remove them. Selected heart pieces will be outlined in blue.
+					<br><br>
+					Reclick the red left button as it now changes to ‘Select Group 2 Piece(s)’. From here you can
+					again
+					click pieces to add to the second group, or click the orange complement button on the left to
+					select
+					all
+					remaining pieces.
+					<br><br>
+					Clicking the red button will begin the computation, this should take at most 10 seconds. The
+					resulting
+					table will list the gene name (which you can click to load the gene on to the 3D heart), the
+					fold
+					change
+					between the two groups, and the false discovery rate (FDR). Click the blue button to toggle
+					between
+					sorting by the log fold change (FC) and the false discovery rate (FDR).
+					<br><br>
+					<b>5. Viewing the average expression of a gene set</b>
+					<br><br>
+					Gene sets can be uploaded to view the average expression for those genes (eg for genes from a
+					particular
+					pathway). Click the 'Upload gene set' button and select a file containing a list of genes in the
+					file
+					selection popup. The gene list must be a text file with one gene symbol per line. Gene sets in
+					'grp',
+					'text' and 'gmx' formats from
+					<a href="http://software.broadinstitute.org/gsea/msigdb/index.jsp" target="_blank">MSigDB</a>
+					also
+					work,
+					as long as all gene names are valid
+					<a href="http://www.informatics.jax.org/batch" target="_blank">MGI gene symbols</a>.
+				</td>
+			</tr>
+		</table>
+	</div>
+	<br>
+	<br>
+	<script>
+		/* Allow scrolling the page when the mouse cursor is over the webgl canvas */
+		var gameContainer = document.getElementById("gameContainer");
+		function ScrollingY(event) {
+			window.scrollBy({
+				top: event.deltaY * 16,
+				left: 0,
+				behavior: 'smooth'
+			});
+		}
+		gameContainer.addEventListener("wheel", ScrollingY, true);
+
+		document.getElementById('file-upload-button').onclick = function() {
+			document.getElementById('file').click();
+		}
+	</script>
+</body>
+
+</html>
